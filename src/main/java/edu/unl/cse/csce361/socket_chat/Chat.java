@@ -89,15 +89,21 @@ public class Chat {
             try {
                 String addressString = scanner.nextLine();
                 String[] tokens = addressString.split("\\.");
-                for (int i = 0; i < 4; i++) {
-                    address[i] = Byte.parseByte(tokens[i]);
+                if (tokens.length == 4) {
+                    for (int i = 0; i < 4; i++) {
+                        address[i] = Byte.parseByte(tokens[i]);
+                    }
+                } else {
+                    System.out.println("The IP address should be four dot-separated numbers; <"
+                            + addressString + "> does not conform.");
+                    haveGoodAddress = false;
                 }
             } catch (NumberFormatException nfException) {
                 System.out.println("The IP address should be exactly as reported to the host user.");
                 String message = nfException.getMessage();
                 if (message.startsWith("Value out of range. Value")) {
                     String[] messageTokens = message.split("\"");
-                    long value = Long.parseLong(messageTokens[1]);   // this is fragile to an unexpected message format
+                    long value = Long.parseLong(messageTokens[1]);   // this may break if message format changes
                     if ((127 < value) && (value < 256)) {
                         System.out.println("Note that Java does not have unsigned integers, so subtract 256 from " +
                                 "values greater than 127. For example, " + value + " should be " + (value - 256) + ".");
