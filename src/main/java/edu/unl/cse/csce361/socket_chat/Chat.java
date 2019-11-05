@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class Chat {
@@ -64,8 +65,8 @@ public class Chat {
     private Socket connectAsServer() throws IOException {
         byte[] address = InetAddress.getLocalHost().getAddress();
         System.out.println("Host address: " + address[0] + "." + address[1] + "." + address[2] + "." + address[3]);
-        System.out.print("Select port number: ");
-        int port = getPort();
+        String prompt = "Select port number";
+        short port = getPort(prompt);
         ServerSocket serverSocket = new ServerSocket(port);
         return serverSocket.accept();
     }
@@ -78,15 +79,28 @@ public class Chat {
         for (int i = 0; i < 4; i++) {
             address[i] = Byte.parseByte(tokens[i]);
         }
-        System.out.print("Enter port host is opening at " +
-                address[0] + "." + address[1] + "." + address[2] + "." + address[3] + ": ");
-        int port = getPort();
+        String prompt = "Enter port host is opening at " +
+                address[0] + "." + address[1] + "." + address[2] + "." + address[3];
+        short port = getPort(prompt);
         return new Socket(InetAddress.getByAddress(address), port);
     }
 
-    private int getPort() {
-        int port = scanner.nextInt();
-        scanner.nextLine();
+    private short getPort(String prompt) {
+        boolean haveGoodNumber = false;
+        short port = 0;
+        while (!haveGoodNumber) {
+            System.out.print(prompt + ": ");
+            haveGoodNumber = true;
+            try {
+                port = scanner.nextShort();
+                if (port < 0) throw new InputMismatchException("Expected non-negative value, got " + port);
+            } catch (InputMismatchException ignored) {
+                System.out.println("The port number must be a positive integer strictly less than 65536.");
+                haveGoodNumber = false;
+            } finally {
+                scanner.nextLine();
+            }
+        }
         return port;
     }
 
