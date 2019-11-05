@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>edu.unl.cse</groupId>
+    <groupId>edu.unl.cse.csce361.socket_chat</groupId>
     <artifactId>SocketChat</artifactId>
     <version>1.0-SNAPSHOT</version>
     <build>
@@ -24,7 +24,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>edu.unl.cse.socketchat.Chat</mainClass>
+                            <mainClass>edu.unl.cse.csce361.socket_chat.Chat</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

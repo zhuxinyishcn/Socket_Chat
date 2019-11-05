@@ -1,8 +1,4 @@
-/*
- * Copyright (c) 2019 Christopher A. Bohn, bohn@unl.edu.
- */
-
-package edu.unl.cse.socketchat;
+package edu.unl.cse.csce361.socket_chat;
 
 import java.io.*;
 import java.net.InetAddress;
