@@ -35,8 +35,9 @@ public class Chat {
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     public void communicate() {
-        System.out.println("Host goes first.");
+        System.out.println("Connection established. Host goes first.");
         String message = "";
         int turn = 0;
         try {
@@ -57,29 +58,39 @@ public class Chat {
         String answerString = scanner.nextLine().toUpperCase();
         char answer = answerString.length() > 0 ? answerString.charAt(0) : 'Y';
         isHost = (answer != 'N');
-        return isHost ? connectAsServer(6858) : connectAsClient(6858);
+        return isHost ? connectAsServer() : connectAsClient();
     }
 
-    private Socket connectAsServer(int port) throws IOException {
+    private Socket connectAsServer() throws IOException {
         byte[] address = InetAddress.getLocalHost().getAddress();
-//        byte[] address = InetAddress.getLoopbackAddress().getAddress();
         System.out.println("Host address: " + address[0] + "." + address[1] + "." + address[2] + "." + address[3]);
+        System.out.print("Select port number: ");
+        int port = getPort();
         ServerSocket serverSocket = new ServerSocket(port);
         return serverSocket.accept();
     }
 
-    private Socket connectAsClient(int port) throws IOException {
+    private Socket connectAsClient() throws IOException {
         System.out.print("Enter IP address of host <##.##.##.##>: ");
         String addressString = scanner.nextLine();
-        String tokens[] = addressString.split("\\.");
+        String[] tokens = addressString.split("\\.");
         byte[] address = new byte[4];
         for (int i = 0; i < 4; i++) {
-            address[i] = Byte.valueOf(tokens[i]);
+            address[i] = Byte.parseByte(tokens[i]);
         }
+        System.out.print("Enter port host is opening at " +
+                address[0] + "." + address[1] + "." + address[2] + "." + address[3] + ": ");
+        int port = getPort();
         return new Socket(InetAddress.getByAddress(address), port);
     }
 
-    public static void main(String args[]) {
+    private int getPort() {
+        int port = scanner.nextInt();
+        scanner.nextLine();
+        return port;
+    }
+
+    public static void main(String[] args) {
         Chat chat = new Chat();
         chat.communicate();
     }
