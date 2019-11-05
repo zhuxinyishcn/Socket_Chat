@@ -66,34 +66,61 @@ public class Chat {
         byte[] address = InetAddress.getLocalHost().getAddress();
         System.out.println("Host address: " + address[0] + "." + address[1] + "." + address[2] + "." + address[3]);
         String prompt = "Select port number";
-        short port = getPort(prompt);
+        int port = getPort(prompt);
         ServerSocket serverSocket = new ServerSocket(port);
         return serverSocket.accept();
     }
 
     private Socket connectAsClient() throws IOException {
-        System.out.print("Enter IP address of host <##.##.##.##>: ");
-        String addressString = scanner.nextLine();
-        String[] tokens = addressString.split("\\.");
-        byte[] address = new byte[4];
-        for (int i = 0; i < 4; i++) {
-            address[i] = Byte.parseByte(tokens[i]);
-        }
+        byte[] address = getRemoteHostAddress();
         String prompt = "Enter port host is opening at " +
                 address[0] + "." + address[1] + "." + address[2] + "." + address[3];
-        short port = getPort(prompt);
+        int port = getPort(prompt);
         return new Socket(InetAddress.getByAddress(address), port);
     }
 
-    private short getPort(String prompt) {
+    private byte[] getRemoteHostAddress() {
+        // This assumes IPv4. Probably a good assumption.
+        boolean haveGoodAddress = false;
+        byte[] address = new byte[4];
+        while (!haveGoodAddress) {
+            System.out.print("Enter IP address of host <##.##.##.##>: ");
+            haveGoodAddress = true;
+            try {
+                String addressString = scanner.nextLine();
+                String[] tokens = addressString.split("\\.");
+                for (int i = 0; i < 4; i++) {
+                    address[i] = Byte.parseByte(tokens[i]);
+                }
+            } catch (NumberFormatException nfException) {
+                System.out.println("The IP address should be exactly as reported to the host user.");
+                String message = nfException.getMessage();
+                if (message.startsWith("Value out of range. Value")) {
+                    String[] messageTokens = message.split("\"");
+                    long value = Long.parseLong(messageTokens[1]);   // this is fragile to an unexpected message format
+                    if ((127 < value) && (value < 256)) {
+                        System.out.println("Note that Java does not have unsigned integers, so subtract 256 from " +
+                                "values greater than 127. For example, " + value + " should be " + (value - 256) + ".");
+                    }
+                }
+                haveGoodAddress = false;
+            }
+        }
+        return address;
+    }
+
+    private int getPort(String prompt) {
         boolean haveGoodNumber = false;
-        short port = 0;
+        int port = 0;
         while (!haveGoodNumber) {
             System.out.print(prompt + ": ");
             haveGoodNumber = true;
             try {
-                port = scanner.nextShort();
+                port = scanner.nextInt();
                 if (port < 0) throw new InputMismatchException("Expected non-negative value, got " + port);
+                if (port >= 2 * (Short.MAX_VALUE + 1)) {
+                    throw new InputMismatchException("Expected value less than 65536, got " + port);
+                }
             } catch (InputMismatchException ignored) {
                 System.out.println("The port number must be a positive integer strictly less than 65536.");
                 haveGoodNumber = false;
