@@ -12,24 +12,11 @@ public class Chat {
     private Socket socket;
     private Scanner scanner;
     private boolean isHost;
-    private PrintStream[] output = new PrintStream[2];
-    private BufferedReader[] input = new BufferedReader[2];
 
     public Chat() {
         scanner = new Scanner(System.in);
         try {
             socket = connect();
-            if (isHost) {
-                input[0] = new BufferedReader(new InputStreamReader(System.in));
-                input[1] = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                output[0] = new PrintStream(socket.getOutputStream());
-                output[1] = System.out;
-            } else {
-                input[0] = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                input[1] = new BufferedReader(new InputStreamReader(System.in));
-                output[0] = System.out;
-                output[1] = new PrintStream(socket.getOutputStream());
-            }
         } catch (IOException ioException) {
             System.err.println("Connection failed: " + ioException);
             System.exit(1);
@@ -38,20 +25,54 @@ public class Chat {
 
     @SuppressWarnings("WeakerAccess")
     public void communicate() {
-        System.out.println("Connection established. Host goes first.");
-        String message = "";
-        int turn = 0;
         try {
-            while (!message.equals("EXIT")) {
-                message = input[turn].readLine();
-                output[turn].println(message);
-                turn = (turn + 1) % 2;
-            }
+            communicate(
+                    new BufferedReader(new InputStreamReader(System.in)),
+                    new BufferedReader(new InputStreamReader(socket.getInputStream())),
+                    System.out,
+                    new PrintStream(socket.getOutputStream()));
             socket.close();
         } catch (IOException ioException) {
             System.err.println("Connection dropped: " + ioException);
             System.exit(1);
         }
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private void communicate(BufferedReader localInput,
+                             BufferedReader remoteInput,
+                             PrintStream localOutput,
+                             PrintStream remoteOutput) {
+        System.out.println("Connection established. Host goes first.");
+        String message = "";
+        boolean myTurnToTalk = isHost;
+        try {
+            while (!message.equals("EXIT")) {
+                if (myTurnToTalk) {
+                    message = localInput.readLine();
+                    remoteOutput.println(encipher(message));
+                } else {
+                    message = decipher(remoteInput.readLine());
+                    localOutput.println(message);
+                }
+                myTurnToTalk = !myTurnToTalk;
+            }
+        } catch (IOException ioException) {
+            System.err.println("Connection dropped: " + ioException);
+            System.exit(1);
+        }
+    }
+
+    private String encipher(String plaintext) {
+//        String ciphertext = ...;
+//        return ciphertext;
+        return plaintext;
+    }
+
+    private String decipher(String ciphertext) {
+//        String plaintext = ...;
+//        return plaintext;
+        return ciphertext;
     }
 
     private Socket connect() throws IOException {
@@ -68,6 +89,7 @@ public class Chat {
         String prompt = "Select port number";
         int port = getPort(prompt);
         ServerSocket serverSocket = new ServerSocket(port);
+        System.out.println("Waiting for client.");
         return serverSocket.accept();
     }
 
