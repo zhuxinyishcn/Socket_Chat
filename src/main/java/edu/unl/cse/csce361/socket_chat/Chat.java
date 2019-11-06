@@ -48,9 +48,18 @@ public class Chat {
     private Socket connectAsServer(Scanner userInput) throws IOException {
         byte[] address = InetAddress.getLocalHost().getAddress();
         System.out.println("Host address: " + address[0] + "." + address[1] + "." + address[2] + "." + address[3]);
-        String prompt = "Select port number";
-        int port = getPort(prompt, userInput);
-        ServerSocket serverSocket = new ServerSocket(port);
+        int port;
+        ServerSocket serverSocket;
+        do {
+            String prompt = "Select port number";
+            port = getPort(prompt, userInput);
+            try {
+                serverSocket = new ServerSocket(port);
+            } catch (BindException ignored) {
+                System.out.println("Port " + port + " is already in use.");
+                serverSocket = null;
+            }
+        } while (serverSocket == null);
         System.out.println("Waiting for client.");
         return serverSocket.accept();
     }
@@ -128,7 +137,7 @@ public class Chat {
             haveGoodNumber = true;
             try {
                 port = userInput.nextInt();
-                if (port < 0) throw new InputMismatchException("Expected non-negative value, got " + port);
+                if (port <= 0) throw new InputMismatchException("Expected positive value, got " + port);
                 if (port >= 2 * (Short.MAX_VALUE + 1)) {
                     throw new InputMismatchException("Expected value less than 65536, got " + port);
                 }
