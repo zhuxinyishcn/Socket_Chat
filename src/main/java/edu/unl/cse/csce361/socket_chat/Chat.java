@@ -11,24 +11,23 @@ public class Chat {
 
     private static final int MAXIMUM_CONNECTION_ATTEMPTS = 10;
     private Socket socket;
-    private Scanner scanner;
     private boolean isHost;
 
     public Chat() {
-        scanner = new Scanner(System.in);
-        socket = connect();
+        socket = connect(new Scanner(System.in));
     }
 
-    // THESE METHODS SET UP CONNECTION
+    // THESE METHODS SET UP AND TEAR DOWN CONNECTION
 
-    private Socket connect() {
+    @SuppressWarnings("WeakerAccess")
+    public Socket connect(Scanner userInput) {
         System.out.print("Are you the chat host? [Y] ");
-        String answerString = scanner.nextLine().toUpperCase();
+        String answerString = userInput.nextLine().toUpperCase();
         char answer = answerString.length() > 0 ? answerString.charAt(0) : 'Y';
         isHost = (answer != 'N');
         Socket socket = null;
             try {
-                socket = isHost ? connectAsServer() : connectAsClient();
+                socket = isHost ? connectAsServer(userInput) : connectAsClient(userInput);
             } catch (IOException ioException) {
                 System.err.println("Connection failed: " + ioException);
                 System.exit(1);
@@ -36,21 +35,31 @@ public class Chat {
         return socket;
     }
 
-    private Socket connectAsServer() throws IOException {
+    @SuppressWarnings("WeakerAccess")
+    public void disconnect() {
+        try {
+            socket.close();
+        } catch (IOException ioException) {
+            System.err.println("Error while closing socket: " + ioException);
+            // We're terminating anyway, note the error and continue normal termination
+        }
+    }
+
+    private Socket connectAsServer(Scanner userInput) throws IOException {
         byte[] address = InetAddress.getLocalHost().getAddress();
         System.out.println("Host address: " + address[0] + "." + address[1] + "." + address[2] + "." + address[3]);
         String prompt = "Select port number";
-        int port = getPort(prompt);
+        int port = getPort(prompt, userInput);
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("Waiting for client.");
         return serverSocket.accept();
     }
 
-    private Socket connectAsClient() throws IOException {
-        byte[] address = getRemoteHostAddress();
+    private Socket connectAsClient(Scanner userInput) throws IOException {
+        byte[] address = getRemoteHostAddress(userInput);
         String prompt = "Enter port host is opening at " +
                 address[0] + "." + address[1] + "." + address[2] + "." + address[3];
-        int port = getPort(prompt);
+        int port = getPort(prompt, userInput);
         Socket socket = null;
         int attemptCount = 0;
         do {
@@ -75,7 +84,7 @@ public class Chat {
         return socket;
     }
 
-    private byte[] getRemoteHostAddress() {
+    private byte[] getRemoteHostAddress(Scanner userInput) {
         // This assumes IPv4. Probably a good assumption.
         boolean haveGoodAddress = false;
         byte[] address = new byte[4];
@@ -83,7 +92,7 @@ public class Chat {
             System.out.print("Enter IP address of host <##.##.##.##>: ");
             haveGoodAddress = true;
             try {
-                String addressString = scanner.nextLine();
+                String addressString = userInput.nextLine();
                 String[] tokens = addressString.split("\\.");
                 if (tokens.length == 4) {
                     for (int i = 0; i < 4; i++) {
@@ -111,14 +120,14 @@ public class Chat {
         return address;
     }
 
-    private int getPort(String prompt) {
+    private int getPort(String prompt, Scanner userInput) {
         boolean haveGoodNumber = false;
         int port = 0;
         while (!haveGoodNumber) {
             System.out.print(prompt + ": ");
             haveGoodNumber = true;
             try {
-                port = scanner.nextInt();
+                port = userInput.nextInt();
                 if (port < 0) throw new InputMismatchException("Expected non-negative value, got " + port);
                 if (port >= 2 * (Short.MAX_VALUE + 1)) {
                     throw new InputMismatchException("Expected value less than 65536, got " + port);
@@ -127,7 +136,7 @@ public class Chat {
                 System.out.println("The port number must be a positive integer strictly less than 65536.");
                 haveGoodNumber = false;
             } finally {
-                scanner.nextLine();
+                userInput.nextLine();
             }
         }
         return port;
@@ -147,12 +156,6 @@ public class Chat {
             System.err.println("Failed to set up input/output streams: " + ioException);
             System.err.println("Terminating.");     // I'm pretty sure this is recoverable if the client is waiting on the server
             System.exit(1);
-        }
-        try {
-            socket.close();
-        } catch (IOException ioException) {
-            System.err.println("Error while closing socket: " + ioException);
-            // We're terminating anyway, note the error and continue normal termination
         }
     }
 
@@ -196,5 +199,6 @@ public class Chat {
     public static void main(String[] args) {
         Chat chat = new Chat();
         chat.communicate();
+        chat.disconnect();
     }
 }
