@@ -1,86 +1,39 @@
 package edu.unl.cse.csce361.socket_chat;
 
 import java.io.*;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
+import static java.lang.Thread.sleep;
+
 public class Chat {
 
+    private static final int MAXIMUM_CONNECTION_ATTEMPTS = 10;
     private Socket socket;
     private Scanner scanner;
     private boolean isHost;
 
     public Chat() {
         scanner = new Scanner(System.in);
-        try {
-            socket = connect();
-        } catch (IOException ioException) {
-            System.err.println("Connection failed: " + ioException);
-            System.exit(1);
-        }
+        socket = connect();
     }
 
-    @SuppressWarnings("WeakerAccess")
-    public void communicate() {
-        try {
-            communicate(
-                    new BufferedReader(new InputStreamReader(System.in)),
-                    new BufferedReader(new InputStreamReader(socket.getInputStream())),
-                    System.out,
-                    new PrintStream(socket.getOutputStream()));
-            socket.close();
-        } catch (IOException ioException) {
-            System.err.println("Connection dropped: " + ioException);
-            System.exit(1);
-        }
-    }
+    // THESE METHODS SET UP CONNECTION
 
-    @SuppressWarnings("SameParameterValue")
-    private void communicate(BufferedReader localInput,
-                             BufferedReader remoteInput,
-                             PrintStream localOutput,
-                             PrintStream remoteOutput) {
-        System.out.println("Connection established. Host goes first.");
-        String message = "";
-        boolean myTurnToTalk = isHost;
-        try {
-            while (!message.equals("EXIT")) {
-                if (myTurnToTalk) {
-                    message = localInput.readLine();
-                    remoteOutput.println(encipher(message));
-                } else {
-                    message = decipher(remoteInput.readLine());
-                    localOutput.println(message);
-                }
-                myTurnToTalk = !myTurnToTalk;
-            }
-        } catch (IOException ioException) {
-            System.err.println("Connection dropped: " + ioException);
-            System.exit(1);
-        }
-    }
-
-    private String encipher(String plaintext) {
-//        String ciphertext = ...;
-//        return ciphertext;
-        return plaintext;
-    }
-
-    private String decipher(String ciphertext) {
-//        String plaintext = ...;
-//        return plaintext;
-        return ciphertext;
-    }
-
-    private Socket connect() throws IOException {
+    private Socket connect() {
         System.out.print("Are you the chat host? [Y] ");
         String answerString = scanner.nextLine().toUpperCase();
         char answer = answerString.length() > 0 ? answerString.charAt(0) : 'Y';
         isHost = (answer != 'N');
-        return isHost ? connectAsServer() : connectAsClient();
+        Socket socket = null;
+            try {
+                socket = isHost ? connectAsServer() : connectAsClient();
+            } catch (IOException ioException) {
+                System.err.println("Connection failed: " + ioException);
+                System.exit(1);
+            }
+        return socket;
     }
 
     private Socket connectAsServer() throws IOException {
@@ -98,7 +51,28 @@ public class Chat {
         String prompt = "Enter port host is opening at " +
                 address[0] + "." + address[1] + "." + address[2] + "." + address[3];
         int port = getPort(prompt);
-        return new Socket(InetAddress.getByAddress(address), port);
+        Socket socket = null;
+        int attemptCount = 0;
+        do {
+            try {
+                sleep(1000*attemptCount++);
+            } catch (InterruptedException ignored) {
+            }
+            try {
+                socket = new Socket(InetAddress.getByAddress(address), port);
+            } catch (ConnectException ignored) {
+                System.out.println("Attempt " + attemptCount + ": Chat server is not yet ready at " +
+                        address[0] + "." + address[1] + "." + address[2] + "." + address[3] + ":" + port);
+                if (attemptCount < MAXIMUM_CONNECTION_ATTEMPTS) {
+                    System.out.println("Will attempt to connect again in " + attemptCount + " seconds");
+                    socket = null;
+                } else {
+                    System.err.println("Exceeded maximum number of connection attempts. Terminating.");
+                    System.exit(1);
+                }
+            }
+        } while (socket == null);
+        return socket;
     }
 
     private byte[] getRemoteHostAddress() {
@@ -157,6 +131,66 @@ public class Chat {
             }
         }
         return port;
+    }
+
+    // THESE METHODS PERFORM CHAT AFTER CONNECTION IS SET UP
+
+    @SuppressWarnings("WeakerAccess")
+    public void communicate() {
+        try {
+            communicate(
+                    new BufferedReader(new InputStreamReader(System.in)),
+                    new BufferedReader(new InputStreamReader(socket.getInputStream())),
+                    System.out,
+                    new PrintStream(socket.getOutputStream()));
+        } catch (IOException ioException) {
+            System.err.println("Failed to set up input/output streams: " + ioException);
+            System.err.println("Terminating.");     // I'm pretty sure this is recoverable if the client is waiting on the server
+            System.exit(1);
+        }
+        try {
+            socket.close();
+        } catch (IOException ioException) {
+            System.err.println("Error while closing socket: " + ioException);
+            // We're terminating anyway, note the error and continue normal termination
+        }
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private void communicate(BufferedReader localInput,
+                             BufferedReader remoteInput,
+                             PrintStream localOutput,
+                             PrintStream remoteOutput) {
+        System.out.println("Connection established. Host goes first.");
+        String message = "";
+        boolean myTurnToTalk = isHost;
+        try {
+            while (!message.equals("EXIT")) {
+                if (myTurnToTalk) {
+                    message = localInput.readLine();
+                    remoteOutput.println(encipher(message));
+                } else {
+                    message = decipher(remoteInput.readLine());
+                    localOutput.println(message);
+                }
+                myTurnToTalk = !myTurnToTalk;
+            }
+        } catch (IOException ioException) {
+            System.err.println("Connection dropped: " + ioException);
+            System.exit(1);
+        }
+    }
+
+    private String encipher(String plaintext) {
+//        String ciphertext = ...;
+//        return ciphertext;
+        return plaintext;
+    }
+
+    private String decipher(String ciphertext) {
+//        String plaintext = ...;
+//        return plaintext;
+        return ciphertext;
     }
 
     public static void main(String[] args) {
