@@ -22,7 +22,9 @@ public class Chat {
         socket = connect(new Scanner(System.in));
     }
 
-    // THESE METHODS SET UP AND TEAR DOWN CONNECTION
+    /*
+     *  THESE METHODS SET UP AND TEAR DOWN CONNECTION
+     */
 
     @SuppressWarnings("WeakerAccess")
     public Socket connect(Scanner userInput) {
@@ -95,7 +97,7 @@ public class Chat {
             } catch (ConnectException ignored) {
                 // "Attempt ...: Chat server is not yet ready at ..."
                 System.out.println(MessageFormat.format(
-                        bundle.getString("connection.error.hostNotReady.attempt.1.2.3.4.port"),
+                        bundle.getString("connection.error.hostNotReady.0.1.2.3.4.5"),
                         attemptCount, address[0], address[1], address[2], address[3], port));
                 if (attemptCount < MAXIMUM_CONNECTION_ATTEMPTS) {
                     // "Will attempt to connect again in ... seconds."
@@ -117,8 +119,8 @@ public class Chat {
         boolean haveGoodAddress = false;
         byte[] address = new byte[4];
         while (!haveGoodAddress) {
-            System.out.print("Enter IP address of host <##.##.##.##>: ");
-            haveGoodAddress = true;
+            // "Enter IP address of host <##.##.##.##>:"
+            System.out.print(bundle.getString("connection.prompt.getHostAddress") + " ");
             try {
                 String addressString = userInput.nextLine();
                 String[] tokens = addressString.split("\\.");
@@ -126,20 +128,25 @@ public class Chat {
                     for (int i = 0; i < 4; i++) {
                         address[i] = Byte.parseByte(tokens[i]);
                     }
+                    haveGoodAddress = true;
                 } else {
-                    System.out.println("The IP address should be four dot-separated numbers; <"
-                            + addressString + "> does not conform.");
+                    // "The IP address should be four dot-separated numbers; ... does not conform."
+                    System.out.println(MessageFormat.format(bundle.getString("connection.error.malformedAddress"),
+                            addressString));
                     haveGoodAddress = false;
                 }
             } catch (NumberFormatException nfException) {
-                System.out.println("The IP address should be exactly as reported to the host user.");
+                // "The IP address should be exactly as reported to the host user."
+                System.out.println(bundle.getString("connection.error.badNumberInAddress"));
                 String message = nfException.getMessage();
-                if (message.startsWith("Value out of range. Value")) {
+                // "Value out of range. Value"
+                if (message.startsWith(bundle.getString("exception.numberFormat.startOfValueOutOfRangeMessage"))) {
                     String[] messageTokens = message.split("\"");
                     long value = Long.parseLong(messageTokens[1]);   // this may break if message format changes
                     if ((127 < value) && (value < 256)) {
-                        System.out.println("Note that Java does not have unsigned integers, so subtract 256 from " +
-                                "values greater than 127. For example, " + value + " should be " + (value - 256) + ".");
+                        // "Note that Java does not have unsigned integers, so subtract 256 from values greater than..."
+                        System.out.println(MessageFormat.format(bundle.getString(
+                                "connection.error.userAttemptedUnsignedByte.0.1"), value, value - 256));
                     }
                 }
                 haveGoodAddress = false;
@@ -153,15 +160,22 @@ public class Chat {
         int port = 0;
         while (!haveGoodNumber) {
             System.out.print(prompt + ": ");
-            haveGoodNumber = true;
             try {
                 port = userInput.nextInt();
-                if (port <= 0) throw new InputMismatchException("Expected positive value, got " + port);
-                if (port >= 2 * (Short.MAX_VALUE + 1)) {
-                    throw new InputMismatchException("Expected value less than 65536, got " + port);
+                if (port <= 0) {
+                    // "Expected positive value, got ..."
+                    throw new InputMismatchException(MessageFormat.format(
+                            bundle.getString("connection.error.portNumberTooLow"), port));
                 }
+                if (port >= 2 * (Short.MAX_VALUE + 1)) {
+                    // "Expected value less than 65536, got ..."
+                    throw new InputMismatchException(MessageFormat.format(
+                            bundle.getString("connection.error.portNumberTooHigh"), port));
+                }
+                haveGoodNumber = true;
             } catch (InputMismatchException ignored) {
-                System.out.println("The port number must be a positive integer strictly less than 65536.");
+                // "The port number must be a positive integer strictly less than 65536."
+                System.out.println(bundle.getString("connection.error.badPortNumber"));
                 haveGoodNumber = false;
             } finally {
                 userInput.nextLine();
@@ -170,7 +184,9 @@ public class Chat {
         return port;
     }
 
-    // THESE METHODS PERFORM CHAT AFTER CONNECTION IS SET UP
+    /*
+     *  THESE METHODS PERFORM CHAT AFTER CONNECTION IS SET UP
+     */
 
     @SuppressWarnings("WeakerAccess")
     public void communicate() {
@@ -181,8 +197,10 @@ public class Chat {
                     System.out,
                     new PrintStream(socket.getOutputStream()));
         } catch (IOException ioException) {
-            System.err.println("Failed to set up input/output streams: " + ioException);
-            System.err.println("Terminating.");     // I'm pretty sure this is recoverable if the client is waiting on the server
+            // "Failed to set up input/output streams: ..."
+            // "Terminating."
+            System.err.println(bundle.getString("communicate.error.cannotSetUpStreams") + ": " + ioException);
+            System.err.println(bundle.getString("communicate.info.terminating"));
             System.exit(1);
         }
     }
@@ -192,11 +210,12 @@ public class Chat {
                              BufferedReader remoteInput,
                              PrintStream localOutput,
                              PrintStream remoteOutput) {
-        System.out.println("Connection established. Host goes first.");
+        // "Connection established. Host goes first."
+        System.out.println(bundle.getString("connection.info.ready"));
         String message = "";
         boolean myTurnToTalk = isHost;
         try {
-            while (!message.equals("EXIT")) {
+            while (!message.equals(bundle.getString("communicate.keyword.exit"))) {
                 try {
                     if (myTurnToTalk) {
                         message = localInput.readLine();
@@ -207,13 +226,15 @@ public class Chat {
                             message = decipher(encipheredMessage);
                             localOutput.println(message);
                         } else {
-                            localOutput.println("Received null message: lost connection to remote chatter. Terminating.");
-                            message = "EXIT";
+                            // "Received null message: lost connection to remote chatter. Terminating."
+                            localOutput.println(bundle.getString("communicate.error.nullMessageFromRemote"));
+                            message = bundle.getString("communicate.keyword.exit");
                         }
                     }
                 } catch (SocketException ignored) {
-                    localOutput.println("Unable to exchange message: lost connection to remote chatter. Terminating.");
-                    message = "EXIT";
+                    // "Unable to exchange message: lost connection to remote chatter. Terminating."
+                    localOutput.println(bundle.getString("communicate.error.cannotSendMessage"));
+                    message = bundle.getString("communicate.keyword.exit");
                 }
                 myTurnToTalk = !myTurnToTalk;
             }
