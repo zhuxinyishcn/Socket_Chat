@@ -3,10 +3,8 @@ package edu.unl.cse.csce361.socket_chat;
 import java.io.*;
 import java.net.*;
 import java.text.MessageFormat;
-import java.util.InputMismatchException;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.Scanner;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.lang.Thread.sleep;
 
@@ -16,10 +14,20 @@ public class Chat {
     private Socket socket;
     private boolean isHost;
     private ResourceBundle bundle;
+    private Set<String> keywords;
 
     public Chat() {
-        bundle = ResourceBundle.getBundle("socketchat", Locale.US);
+        setLocale(Locale.getDefault());
         socket = connect(new Scanner(System.in));
+    }
+
+    private void setLocale(Locale locale) {
+        bundle = ResourceBundle.getBundle("socketchat", locale);
+        Set<String> culledKeySet = bundle.keySet().stream()
+                .filter(entry -> entry.startsWith("communicate.keyword."))
+                .collect(Collectors.toSet());
+        keywords = new HashSet<>(culledKeySet.size());
+        culledKeySet.forEach(key -> keywords.add(bundle.getString(key)));
     }
 
     /*
@@ -212,29 +220,32 @@ public class Chat {
                              PrintStream remoteOutput) {
         // "Connection established. Host goes first."
         System.out.println(bundle.getString("connection.info.ready"));
-        String message = "";
+        String message;
+        boolean keepTalking = true;
         boolean myTurnToTalk = isHost;
         try {
-            while (!message.equals(bundle.getString("communicate.keyword.exit"))) {
+            while (keepTalking) {
                 try {
                     if (myTurnToTalk) {
                         message = localInput.readLine();
                         remoteOutput.println(encipher(message));
+                        keepTalking = !keywords.contains(message) || handleKeyword(message, localInput, localOutput);
                     } else {
                         String encipheredMessage = remoteInput.readLine();
                         if (encipheredMessage != null) {
                             message = decipher(encipheredMessage);
                             localOutput.println(message);
+                            keepTalking = !keywords.contains(message) || handleKeyword(message, localInput, localOutput);
                         } else {
                             // "Received null message: lost connection to remote chatter. Terminating."
                             localOutput.println(bundle.getString("communicate.error.nullMessageFromRemote"));
-                            message = bundle.getString("communicate.keyword.exit");
+                            keepTalking = false;
                         }
                     }
                 } catch (SocketException ignored) {
                     // "Unable to exchange message: lost connection to remote chatter. Terminating."
                     localOutput.println(bundle.getString("communicate.error.cannotSendMessage"));
-                    message = bundle.getString("communicate.keyword.exit");
+                    keepTalking = false;
                 }
                 myTurnToTalk = !myTurnToTalk;
             }
@@ -242,6 +253,26 @@ public class Chat {
             System.err.println("Connection dropped: " + ioException);
             System.exit(1);
         }
+    }
+
+    private boolean handleKeyword(String keyword, BufferedReader input, PrintStream output) {
+        if (keyword.equals(bundle.getString("communicate.keyword.exit"))) {
+            return false;
+        /*
+        } else if (keyword.equals(bundle.getString("communicate.keyword.setLocale"))) {
+            if (isHost) {
+                Prompt user using output.println() (be sure to use i18n properties)
+                and get response using input.readLine(). Get the appropriate Locale and call
+                setLocale( ... );
+            }
+            else {
+                output.println("Remote chatter is making updates; please be patient."); // replace with i18n property
+            }
+        */
+        } else {
+            output.println(bundle.getString("communicate.error.unrecognizedKeyword") + ": " + keyword);
+        }
+        return true;
     }
 
     private String encipher(String plaintext) {
