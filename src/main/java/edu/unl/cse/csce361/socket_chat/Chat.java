@@ -26,12 +26,12 @@ public class Chat {
         char answer = answerString.length() > 0 ? answerString.charAt(0) : 'Y';
         isHost = (answer != 'N');
         Socket socket = null;
-            try {
-                socket = isHost ? connectAsServer(userInput) : connectAsClient(userInput);
-            } catch (IOException ioException) {
-                System.err.println("Connection failed: " + ioException);
-                System.exit(1);
-            }
+        try {
+            socket = isHost ? connectAsServer(userInput) : connectAsClient(userInput);
+        } catch (IOException ioException) {
+            System.err.println("Connection failed: " + ioException);
+            System.exit(1);
+        }
         return socket;
     }
 
@@ -73,7 +73,7 @@ public class Chat {
         int attemptCount = 0;
         do {
             try {
-                sleep(1000*attemptCount++);
+                sleep(1000 * attemptCount++);
             } catch (InterruptedException ignored) {
             }
             try {
@@ -178,12 +178,23 @@ public class Chat {
         boolean myTurnToTalk = isHost;
         try {
             while (!message.equals("EXIT")) {
-                if (myTurnToTalk) {
-                    message = localInput.readLine();
-                    remoteOutput.println(encipher(message));
-                } else {
-                    message = decipher(remoteInput.readLine());
-                    localOutput.println(message);
+                try {
+                    if (myTurnToTalk) {
+                        message = localInput.readLine();
+                        remoteOutput.println(encipher(message));
+                    } else {
+                        String encipheredMessage = remoteInput.readLine();
+                        if (encipheredMessage != null) {
+                            message = decipher(encipheredMessage);
+                            localOutput.println(message);
+                        } else {
+                            localOutput.println("Received null message: lost connection to remote chatter. Terminating.");
+                            message = "EXIT";
+                        }
+                    }
+                } catch (SocketException ignored) {
+                    localOutput.println("Unable to exchange message: lost connection to remote chatter. Terminating.");
+                    message = "EXIT";
                 }
                 myTurnToTalk = !myTurnToTalk;
             }
