@@ -3,6 +3,8 @@ package edu.unl.cse.csce361.socket_chat;
 import java.io.*;
 import java.net.*;
 import java.util.InputMismatchException;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Scanner;
 
 import static java.lang.Thread.sleep;
@@ -12,8 +14,10 @@ public class Chat {
     private static final int MAXIMUM_CONNECTION_ATTEMPTS = 10;
     private Socket socket;
     private boolean isHost;
+    private ResourceBundle bundle;
 
     public Chat() {
+        bundle = ResourceBundle.getBundle("socketchat", Locale.US);
         socket = connect(new Scanner(System.in));
     }
 
@@ -21,15 +25,19 @@ public class Chat {
 
     @SuppressWarnings("WeakerAccess")
     public Socket connect(Scanner userInput) {
-        System.out.print("Are you the chat host? [Y] ");
+        String yes = bundle.getString("connection.responses.yes");
+        String no = bundle.getString("connection.responses.no");
+        // "Are you the chat host? [Y] "
+        System.out.print(bundle.getString("connection.prompts.isHost") + " [" + yes + "] ");
         String answerString = userInput.nextLine().toUpperCase();
-        char answer = answerString.length() > 0 ? answerString.charAt(0) : 'Y';
-        isHost = (answer != 'N');
+        String answer = answerString.length() > 0 ? answerString.substring(0, no.length()) : yes;
+        isHost = (!answer.equals(no));
         Socket socket = null;
         try {
             socket = isHost ? connectAsServer(userInput) : connectAsClient(userInput);
         } catch (IOException ioException) {
-            System.err.println("Connection failed: " + ioException);
+            // "Connection failed"
+            System.err.println(bundle.getString("connection.errors.generalConnectionFailure") + ": " + ioException);
             System.exit(1);
         }
         return socket;
