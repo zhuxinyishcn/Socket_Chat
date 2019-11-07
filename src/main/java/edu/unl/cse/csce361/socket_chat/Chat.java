@@ -2,6 +2,7 @@ package edu.unl.cse.csce361.socket_chat;
 
 import java.io.*;
 import java.net.*;
+import java.text.MessageFormat;
 import java.util.InputMismatchException;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -25,10 +26,10 @@ public class Chat {
 
     @SuppressWarnings("WeakerAccess")
     public Socket connect(Scanner userInput) {
-        String yes = bundle.getString("connection.responses.yes");
-        String no = bundle.getString("connection.responses.no");
+        String yes = bundle.getString("connection.response.yes");
+        String no = bundle.getString("connection.response.no");
         // "Are you the chat host? [Y] "
-        System.out.print(bundle.getString("connection.prompts.isHost") + " [" + yes + "] ");
+        System.out.print(bundle.getString("connection.prompt.isHost") + " [" + yes + "] ");
         String answerString = userInput.nextLine().toUpperCase();
         String answer = answerString.length() > 0 ? answerString.substring(0, no.length()) : yes;
         isHost = (!answer.equals(no));
@@ -36,8 +37,8 @@ public class Chat {
         try {
             socket = isHost ? connectAsServer(userInput) : connectAsClient(userInput);
         } catch (IOException ioException) {
-            // "Connection failed"
-            System.err.println(bundle.getString("connection.errors.generalConnectionFailure") + ": " + ioException);
+            // "Connection failed: ..."
+            System.err.println(bundle.getString("connection.error.generalConnectionFailure") + ": " + ioException);
             System.exit(1);
         }
         return socket;
@@ -48,34 +49,39 @@ public class Chat {
         try {
             socket.close();
         } catch (IOException ioException) {
-            System.err.println("Error while closing socket: " + ioException);
+            // "Error while closing socket: ..."
+            System.err.println(bundle.getString("connection.error.closingError") + ": " + ioException);
             // We're terminating anyway, note the error and continue normal termination
         }
     }
 
     private Socket connectAsServer(Scanner userInput) throws IOException {
         byte[] address = InetAddress.getLocalHost().getAddress();
-        System.out.println("Host address: " + address[0] + "." + address[1] + "." + address[2] + "." + address[3]);
+        // "Host address: ..."
+        System.out.println(MessageFormat.format(bundle.getString("connection.info.hostAddress.0.1.2.3"),
+                address[0], address[1], address[2], address[3]));
         int port;
         ServerSocket serverSocket;
         do {
-            String prompt = "Select port number";
-            port = getPort(prompt, userInput);
+            // "Select port number"
+            port = getPort(bundle.getString("connection.prompt.selectPortNumber"), userInput);
             try {
                 serverSocket = new ServerSocket(port);
             } catch (BindException ignored) {
-                System.out.println("Port " + port + " is already in use.");
+                // "Port ... is already in use."
+                System.out.println(MessageFormat.format(bundle.getString("connection.error.portInUse.0"), port));
                 serverSocket = null;
             }
         } while (serverSocket == null);
-        System.out.println("Waiting for client.");
+        System.out.println(bundle.getString("connection.info.waiting"));
         return serverSocket.accept();
     }
 
     private Socket connectAsClient(Scanner userInput) throws IOException {
         byte[] address = getRemoteHostAddress(userInput);
-        String prompt = "Enter port host is opening at " +
-                address[0] + "." + address[1] + "." + address[2] + "." + address[3];
+        // "Enter port host is opening at ..."
+        String prompt = MessageFormat.format(bundle.getString("connection.prompt.getHostPort.0.1.2.3"),
+                address[0], address[1], address[2], address[3]);
         int port = getPort(prompt, userInput);
         Socket socket = null;
         int attemptCount = 0;
@@ -87,13 +93,18 @@ public class Chat {
             try {
                 socket = new Socket(InetAddress.getByAddress(address), port);
             } catch (ConnectException ignored) {
-                System.out.println("Attempt " + attemptCount + ": Chat server is not yet ready at " +
-                        address[0] + "." + address[1] + "." + address[2] + "." + address[3] + ":" + port);
+                // "Attempt ...: Chat server is not yet ready at ..."
+                System.out.println(MessageFormat.format(
+                        bundle.getString("connection.error.hostNotReady.attempt.1.2.3.4.port"),
+                        attemptCount, address[0], address[1], address[2], address[3], port));
                 if (attemptCount < MAXIMUM_CONNECTION_ATTEMPTS) {
-                    System.out.println("Will attempt to connect again in " + attemptCount + " seconds");
+                    // "Will attempt to connect again in ... seconds."
+                    System.out.println(MessageFormat.format(bundle.getString("connection.info.reAttempt"),
+                            attemptCount));
                     socket = null;
                 } else {
-                    System.err.println("Exceeded maximum number of connection attempts. Terminating.");
+                    // "Exceeded maximum number of connection attempts. Terminating."
+                    System.err.println(bundle.getString("connection.error.tooManyAttempts"));
                     System.exit(1);
                 }
             }
