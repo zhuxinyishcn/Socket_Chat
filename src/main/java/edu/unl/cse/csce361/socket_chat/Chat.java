@@ -220,7 +220,7 @@ public class Chat {
                              PrintStream remoteOutput) {
         // "Connection established. Host goes first."
         System.out.println(bundle.getString("connection.info.ready"));
-        String message;
+        String message = "";
         boolean keepTalking = true;
         boolean myTurnToTalk = isHost;
         try {
@@ -229,13 +229,11 @@ public class Chat {
                     if (myTurnToTalk) {
                         message = localInput.readLine();
                         remoteOutput.println(encipher(message));
-                        keepTalking = !keywords.contains(message) || handleKeyword(message, localInput, localOutput);
                     } else {
                         String encipheredMessage = remoteInput.readLine();
                         if (encipheredMessage != null) {
                             message = decipher(encipheredMessage);
                             localOutput.println(message);
-                            keepTalking = !keywords.contains(message) || handleKeyword(message, localInput, localOutput);
                         } else {
                             // "Received null message: lost connection to remote chatter. Terminating."
                             localOutput.println(bundle.getString("communicate.error.nullMessageFromRemote"));
@@ -247,6 +245,9 @@ public class Chat {
                     localOutput.println(bundle.getString("communicate.error.cannotSendMessage"));
                     keepTalking = false;
                 }
+                if (keepTalking && keywords.contains(message)) {
+                    keepTalking = handleKeyword(message, myTurnToTalk, localInput, localOutput);
+                }
                 myTurnToTalk = !myTurnToTalk;
             }
         } catch (IOException ioException) {
@@ -255,12 +256,12 @@ public class Chat {
         }
     }
 
-    private boolean handleKeyword(String keyword, BufferedReader input, PrintStream output) {
+    private boolean handleKeyword(String keyword, boolean fromRemote, BufferedReader input, PrintStream output) {
         if (keyword.equals(bundle.getString("communicate.keyword.exit"))) {
             return false;
         /*
         } else if (keyword.equals(bundle.getString("communicate.keyword.setLocale"))) {
-            if (isHost) {
+            if (fromRemote) {
                 Prompt user using output.println() (be sure to use i18n properties)
                 and get response using input.readLine(). Get the appropriate Locale and call
                 setLocale( ... );
