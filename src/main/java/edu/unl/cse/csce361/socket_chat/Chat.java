@@ -256,12 +256,12 @@ public class Chat {
         }
     }
 
-    private boolean handleKeyword(String keyword, boolean fromRemote, BufferedReader input, PrintStream output) {
+    private boolean handleKeyword(String keyword, boolean localMessage, BufferedReader input, PrintStream output) {
         if (keyword.equals(bundle.getString("communicate.keyword.exit"))) {
             return false;
         /*
         } else if (keyword.equals(bundle.getString("communicate.keyword.setLocale"))) {
-            if (fromRemote) {
+            if (localMessage) {
                 Prompt user using output.println() (be sure to use i18n properties)
                 and get response using input.readLine(). Get the appropriate Locale and call
                 setLocale( ... );
