@@ -1,6 +1,9 @@
 package edu.unl.cse.csce361.socket_chat;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.net.*;
 import java.text.MessageFormat;
 import java.util.*;
@@ -16,12 +19,22 @@ public class Chat {
     private ResourceBundle bundle;
     private Set<String> keywords;
 
-    public Chat() {
+    public Chat () {
         setLocale(Locale.getDefault());
         socket = connect(new Scanner(System.in));
     }
 
-    private void setLocale(Locale locale) {
+    public static void main (String[] args) {
+        Chat chat = new Chat();
+        chat.communicate();
+        chat.disconnect();
+    }
+
+    /*
+     *  THESE METHODS SET UP AND TEAR DOWN CONNECTION
+     */
+
+    private void setLocale (Locale locale) {
         bundle = ResourceBundle.getBundle("socketchat", locale);
         Set<String> culledKeySet = bundle.keySet().stream()
                 .filter(entry -> entry.startsWith("communicate.keyword."))
@@ -30,12 +43,8 @@ public class Chat {
         culledKeySet.forEach(key -> keywords.add(bundle.getString(key)));
     }
 
-    /*
-     *  THESE METHODS SET UP AND TEAR DOWN CONNECTION
-     */
-
     @SuppressWarnings("WeakerAccess")
-    public Socket connect(Scanner userInput) {
+    public Socket connect (Scanner userInput) {
         String yes = bundle.getString("connection.response.yes");
         String no = bundle.getString("connection.response.no");
         // "Are you the chat host? [Y] "
@@ -55,7 +64,7 @@ public class Chat {
     }
 
     @SuppressWarnings("WeakerAccess")
-    public void disconnect() {
+    public void disconnect () {
         try {
             socket.close();
         } catch (IOException ioException) {
@@ -65,7 +74,7 @@ public class Chat {
         }
     }
 
-    private Socket connectAsServer(Scanner userInput) throws IOException {
+    private Socket connectAsServer (Scanner userInput) throws IOException {
         byte[] address = InetAddress.getLocalHost().getAddress();
         // "Host address: ..."
         System.out.println(MessageFormat.format(bundle.getString("connection.info.hostAddress.0.1.2.3"),
@@ -87,7 +96,7 @@ public class Chat {
         return serverSocket.accept();
     }
 
-    private Socket connectAsClient(Scanner userInput) throws IOException {
+    private Socket connectAsClient (Scanner userInput) throws IOException {
         byte[] address = getRemoteHostAddress(userInput);
         // "Enter port host is opening at ..."
         String prompt = MessageFormat.format(bundle.getString("connection.prompt.getHostPort.0.1.2.3"),
@@ -122,7 +131,7 @@ public class Chat {
         return socket;
     }
 
-    private byte[] getRemoteHostAddress(Scanner userInput) {
+    private byte[] getRemoteHostAddress (Scanner userInput) {
         // This assumes IPv4. Probably a good assumption.
         boolean haveGoodAddress = false;
         byte[] address = new byte[4];
@@ -163,7 +172,11 @@ public class Chat {
         return address;
     }
 
-    private int getPort(String prompt, Scanner userInput) {
+    /*
+     *  THESE METHODS PERFORM CHAT AFTER CONNECTION IS SET UP
+     */
+
+    private int getPort (String prompt, Scanner userInput) {
         boolean haveGoodNumber = false;
         int port = 0;
         while (!haveGoodNumber) {
@@ -192,12 +205,8 @@ public class Chat {
         return port;
     }
 
-    /*
-     *  THESE METHODS PERFORM CHAT AFTER CONNECTION IS SET UP
-     */
-
     @SuppressWarnings("WeakerAccess")
-    public void communicate() {
+    public void communicate () {
         try {
             communicate(
                     new BufferedReader(new InputStreamReader(System.in)),
@@ -214,10 +223,10 @@ public class Chat {
     }
 
     @SuppressWarnings("SameParameterValue")
-    private void communicate(BufferedReader localInput,
-                             BufferedReader remoteInput,
-                             PrintStream localOutput,
-                             PrintStream remoteOutput) {
+    private void communicate (BufferedReader localInput,
+                              BufferedReader remoteInput,
+                              PrintStream localOutput,
+                              PrintStream remoteOutput) {
         // "Connection established. Host goes first."
         System.out.println(bundle.getString("connection.info.ready"));
         String message = "";
@@ -256,7 +265,7 @@ public class Chat {
         }
     }
 
-    private boolean handleKeyword(String keyword, boolean localMessage, BufferedReader input, PrintStream output) {
+    private boolean handleKeyword (String keyword, boolean localMessage, BufferedReader input, PrintStream output) {
         if (keyword.equals(bundle.getString("communicate.keyword.exit"))) {
             return false;
         /*
@@ -276,21 +285,15 @@ public class Chat {
         return true;
     }
 
-    private String encipher(String plaintext) {
+    private String encipher (String plaintext) {
 //        String ciphertext = ...;
 //        return ciphertext;
         return plaintext;
     }
 
-    private String decipher(String ciphertext) {
+    private String decipher (String ciphertext) {
 //        String plaintext = ...;
 //        return plaintext;
         return ciphertext;
-    }
-
-    public static void main(String[] args) {
-        Chat chat = new Chat();
-        chat.communicate();
-        chat.disconnect();
     }
 }
