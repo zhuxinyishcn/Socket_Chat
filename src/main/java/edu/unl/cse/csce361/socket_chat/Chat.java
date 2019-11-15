@@ -20,19 +20,46 @@ public class Chat {
     private Set<String> keywords;
 
     public Chat () {
-        setLocale(Locale.getDefault());
+        setLocale(Locale.CHINESE);
         socket = connect(new Scanner(System.in));
     }
 
     public static void main (String[] args) {
-        Chat chat = new Chat();
-        chat.communicate();
-        chat.disconnect();
+//        Chat chat = new Chat();
+        String k = encipher("您是聊天主机吗？");
+        decipher(k);
+//        chat.communicate();
+//        chat.disconnect();
     }
 
     /*
      *  THESE METHODS SET UP AND TEAR DOWN CONNECTION
      */
+
+    private static String encipher (String plaintext) {
+        final String emptyString = "";
+        final StringBuilder sb = new StringBuilder(emptyString);
+        final int key = "CSCE361 Chat Program".hashCode();
+        for (int i = 0; i < plaintext.length(); i++) {
+            sb.append(" ");
+            sb.append(plaintext.charAt(i) ^ key);
+        }
+        return sb.toString();
+    }
+
+    private static String decipher (String ciphertext) {
+        final String emptyString = "";
+        final StringBuilder sb = new StringBuilder(emptyString);
+        final String[] token = ciphertext.split(" ", -1);
+        final int key = "CSCE361 Chat Program".hashCode();
+        for (int i = 0; i < token.length; i++) {
+            if (!token[i].isEmpty()) {
+                sb.append((char) (Integer.parseInt(token[i]) ^ key));
+            }
+        }
+        System.out.println(sb.toString());
+        return sb.toString();
+    }
 
     private void setLocale (Locale locale) {
         bundle = ResourceBundle.getBundle("socketchat", locale);
@@ -95,6 +122,10 @@ public class Chat {
         System.out.println(bundle.getString("connection.info.waiting"));
         return serverSocket.accept();
     }
+
+    /*
+     *  THESE METHODS PERFORM CHAT AFTER CONNECTION IS SET UP
+     */
 
     private Socket connectAsClient (Scanner userInput) throws IOException {
         byte[] address = getRemoteHostAddress(userInput);
@@ -171,10 +202,6 @@ public class Chat {
         }
         return address;
     }
-
-    /*
-     *  THESE METHODS PERFORM CHAT AFTER CONNECTION IS SET UP
-     */
 
     private int getPort (String prompt, Scanner userInput) {
         boolean haveGoodNumber = false;
@@ -268,32 +295,21 @@ public class Chat {
     private boolean handleKeyword (String keyword, boolean localMessage, BufferedReader input, PrintStream output) {
         if (keyword.equals(bundle.getString("communicate.keyword.exit"))) {
             return false;
-        /*
+
         } else if (keyword.equals(bundle.getString("communicate.keyword.setLocale"))) {
             if (localMessage) {
-                Prompt user using output.println() (be sure to use i18n properties)
-                and get response using input.readLine(). Get the appropriate Locale and call
-                setLocale( ... );
+//                Prompt user using output.println() (be sure to use i18n properties)
+//                and get response using input.readLine(). Get the appropriate Locale and call
+                output.println("");
+                setLocale(Locale.CHINESE);
             }
             else {
                 output.println("Remote chatter is making updates; please be patient."); // replace with i18n property
             }
-        */
+
         } else {
             output.println(bundle.getString("communicate.error.unrecognizedKeyword") + ": " + keyword);
         }
         return true;
-    }
-
-    private String encipher (String plaintext) {
-//        String ciphertext = ...;
-//        return ciphertext;
-        return plaintext;
-    }
-
-    private String decipher (String ciphertext) {
-//        String plaintext = ...;
-//        return plaintext;
-        return ciphertext;
     }
 }
