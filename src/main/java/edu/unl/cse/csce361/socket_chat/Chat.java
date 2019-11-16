@@ -12,53 +12,38 @@ import java.util.stream.Collectors;
 import static java.lang.Thread.sleep;
 
 public class Chat {
-
     private static final int MAXIMUM_CONNECTION_ATTEMPTS = 10;
+    private Cipher cipherStrategy;
     private Socket socket;
     private boolean isHost;
     private ResourceBundle bundle;
     private Set<String> keywords;
 
+
     public Chat () {
-        setLocale(Locale.CHINESE);
+        this.cipherStrategy = CipherFactory.createCipher("XOR", new String[]{"12"});
+        setLocale(Locale.getDefault());
         socket = connect(new Scanner(System.in));
     }
 
     public static void main (String[] args) {
-//        Chat chat = new Chat();
-        String k = encipher("您是聊天主机吗？");
-        decipher(k);
-//        chat.communicate();
-//        chat.disconnect();
+        Chat chat = new Chat();
+        chat.communicate();
+        chat.disconnect();
     }
 
     /*
      *  THESE METHODS SET UP AND TEAR DOWN CONNECTION
      */
 
-    private static String encipher (String plaintext) {
-        final String emptyString = "";
-        final StringBuilder sb = new StringBuilder(emptyString);
-        final int key = "CSCE361 Chat Program".hashCode();
-        for (int i = 0; i < plaintext.length(); i++) {
-            sb.append(" ");
-            sb.append(plaintext.charAt(i) ^ key);
-        }
-        return sb.toString();
+    private String encipher (String plaintext) {
+        String ciphertext = cipherStrategy.encipher(plaintext);
+        return ciphertext;
     }
 
-    private static String decipher (String ciphertext) {
-        final String emptyString = "";
-        final StringBuilder sb = new StringBuilder(emptyString);
-        final String[] token = ciphertext.split(" ", -1);
-        final int key = "CSCE361 Chat Program".hashCode();
-        for (int i = 0; i < token.length; i++) {
-            if (!token[i].isEmpty()) {
-                sb.append((char) (Integer.parseInt(token[i]) ^ key));
-            }
-        }
-        System.out.println(sb.toString());
-        return sb.toString();
+    private String decipher (String ciphertext) {
+        String plaintext = cipherStrategy.decipher(ciphertext);
+        return plaintext;
     }
 
     private void setLocale (Locale locale) {
@@ -292,21 +277,47 @@ public class Chat {
         }
     }
 
-    private boolean handleKeyword (String keyword, boolean localMessage, BufferedReader input, PrintStream output) {
+    private boolean handleKeyword (String keyword, boolean localMessage, BufferedReader input, PrintStream output) throws IOException {
         if (keyword.equals(bundle.getString("communicate.keyword.exit"))) {
             return false;
 
         } else if (keyword.equals(bundle.getString("communicate.keyword.setLocale"))) {
             if (localMessage) {
-//                Prompt user using output.println() (be sure to use i18n properties)
-//                and get response using input.readLine(). Get the appropriate Locale and call
-                output.println("");
-                setLocale(Locale.CHINESE);
-            }
-            else {
+                output.println("Please enter a choice: (1) 中文, (2) English: ");
+                String userChoice = input.readLine();
+                while (!"中文".equalsIgnoreCase(userChoice) && !"English".equalsIgnoreCase(userChoice)) {
+                    output.println(bundle.getString("communicate.error.unrecognizedKeyword") + ": " + keyword);
+                    userChoice = input.readLine();
+                }
+                if ("中文".equals(userChoice)) {
+                    setLocale(Locale.CHINESE);
+                } else if ("English".equals(userChoice)) {
+                    setLocale(Locale.getDefault());
+                }
+                output.println(bundle.getString("connection.info.changeSuccess") + ": " + userChoice + " mode");
+            } else {
                 output.println("Remote chatter is making updates; please be patient."); // replace with i18n property
             }
-
+        } else if (keyword.equals(bundle.getString("communicate.keyword.setCipher"))) {
+            output.println(bundle.getString("connection.info.cipher"));
+            String userChoice = input.readLine();
+            while (!"Base64".equalsIgnoreCase(userChoice) && !"XOR".equalsIgnoreCase(userChoice)) {
+                output.println(bundle.getString("communicate.error.unrecognizedKeyword") + ": " + keyword);
+                userChoice = input.readLine();
+            }
+            String[] keys = new String[1];
+            if ("XOR".equalsIgnoreCase(userChoice)) {
+                output.println(bundle.getString("connection.prompt.inputString"));
+                keys[0] = input.readLine();
+            }
+            this.cipherStrategy = CipherFactory.createCipher(userChoice, keys);
+            output.println(bundle.getString("connection.info.changeSuccess") + ": " + userChoice + " Cipher Algorithm");
+            if (keys[0].isEmpty()) {
+                output.println(bundle.getString("connection.info.changeCipher") + userChoice + " Cipher Algorithm");
+            } else {
+                output.println(bundle.getString("connection.info.changeCipher") + userChoice + " Cipher Algorithm " +
+                        "key: " + keys[0]);
+            }
         } else {
             output.println(bundle.getString("communicate.error.unrecognizedKeyword") + ": " + keyword);
         }
