@@ -320,15 +320,15 @@ y
                     output.println(bundle.getString("connection.info.changeCipher") + userChoice + " Cipher Algorithm " +
                             "key: " + keys[0]);
                 }
+                this.cipherStrategy = CipherFactory.createCipher(userChoice, keys);
+            } else {
+                output.println(bundle.getString("connection.info.changing"));
                 if (keys[0] == null) {
-                    output.println(bundle.getString("connection.info.changeCipher") + "Base64 Cipher Algorithm");
-                } else {
+                    output.println(bundle.getString("connection.info.changeCipher") + "bASE64 Cipher Algorithm");
+                } else{
                     output.println(bundle.getString("connection.info.changeCipher") + "XOR Cipher Algorithm " +
                             "key: " + keys[0]);
                 }
-                this.cipherStrategy = CipherFactory.createCipher(userChoice, keys);
-            } else {
-                output.println(bundle.getString("connection.info.changing")); // replace with i18n property
             }
 
 

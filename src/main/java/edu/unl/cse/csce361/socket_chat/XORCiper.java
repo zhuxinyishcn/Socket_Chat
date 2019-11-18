@@ -21,6 +21,11 @@ public class XORCiper implements Cipher {
 
     @Override
     public String decipher (String ciphertext) {
+        try {
+            Integer.parseInt(ciphertext);
+        } catch (NumberFormatException e) {
+            return ciphertext;
+        }
         final String emptyString = "";
         final StringBuilder sb = new StringBuilder(emptyString);
         final String[] token = ciphertext.split(" ", -1);
