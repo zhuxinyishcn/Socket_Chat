@@ -21,7 +21,7 @@ public class Chat {
 
 
     public Chat () {
-        this.cipherStrategy = CipherFactory.createCipher("XOR", new String[]{"12"});
+        this.cipherStrategy = CipherFactory.createCipher();
         setLocale(Locale.getDefault());
         socket = connect(new Scanner(System.in));
     }
@@ -109,6 +109,7 @@ public class Chat {
     }
 
     /*
+y
      *  THESE METHODS PERFORM CHAT AFTER CONNECTION IS SET UP
      */
 
@@ -296,28 +297,41 @@ public class Chat {
                 }
                 output.println(bundle.getString("connection.info.changeSuccess") + ": " + userChoice + " mode");
             } else {
-                output.println("Remote chatter is making updates; please be patient."); // replace with i18n property
+                output.println(bundle.getString("connection.info.changing")); // replace with i18n property
             }
         } else if (keyword.equals(bundle.getString("communicate.keyword.setCipher"))) {
-            output.println(bundle.getString("connection.info.cipher"));
-            String userChoice = input.readLine();
-            while (!"Base64".equalsIgnoreCase(userChoice) && !"XOR".equalsIgnoreCase(userChoice)) {
-                output.println(bundle.getString("communicate.error.unrecognizedKeyword") + ": " + keyword);
-                userChoice = input.readLine();
-            }
+            String userChoice = null;
             String[] keys = new String[1];
-            if ("XOR".equalsIgnoreCase(userChoice)) {
-                output.println(bundle.getString("connection.prompt.inputString"));
-                keys[0] = input.readLine();
-            }
-            this.cipherStrategy = CipherFactory.createCipher(userChoice, keys);
-            output.println(bundle.getString("connection.info.changeSuccess") + ": " + userChoice + " Cipher Algorithm");
-            if (keys[0].isEmpty()) {
-                output.println(bundle.getString("connection.info.changeCipher") + userChoice + " Cipher Algorithm");
+            if (localMessage) {
+                output.println(bundle.getString("connection.info.cipher"));
+                userChoice = input.readLine();
+                while (!"Base64".equalsIgnoreCase(userChoice) && !"XOR".equalsIgnoreCase(userChoice)) {
+                    output.println(bundle.getString("communicate.error.unrecognizedKeyword") + ": " + keyword);
+                    userChoice = input.readLine();
+                }
+                if ("XOR".equalsIgnoreCase(userChoice)) {
+                    output.println(bundle.getString("connection.prompt.inputString"));
+                    keys[0] = input.readLine();
+                }
+                output.println(bundle.getString("connection.info.changeSuccess") + ": " + userChoice + " Cipher Algorithm");
+                if (keys[0] == null) {
+                    output.println(bundle.getString("connection.info.changeCipher") + userChoice + " Cipher Algorithm");
+                } else {
+                    output.println(bundle.getString("connection.info.changeCipher") + userChoice + " Cipher Algorithm " +
+                            "key: " + keys[0]);
+                }
+                if (keys[0] == null) {
+                    output.println(bundle.getString("connection.info.changeCipher") + "Base64 Cipher Algorithm");
+                } else {
+                    output.println(bundle.getString("connection.info.changeCipher") + "XOR Cipher Algorithm " +
+                            "key: " + keys[0]);
+                }
+                this.cipherStrategy = CipherFactory.createCipher(userChoice, keys);
             } else {
-                output.println(bundle.getString("connection.info.changeCipher") + userChoice + " Cipher Algorithm " +
-                        "key: " + keys[0]);
+                output.println(bundle.getString("connection.info.changing")); // replace with i18n property
             }
+
+
         } else {
             output.println(bundle.getString("communicate.error.unrecognizedKeyword") + ": " + keyword);
         }

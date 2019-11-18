@@ -5,7 +5,6 @@ import java.util.Base64;
 public class Base64Ciper implements Cipher {
     @Override
     public String encipher (String plaintext) {
-        System.out.println(Base64.getEncoder().encodeToString(plaintext.getBytes()));
         return Base64.getEncoder().encodeToString(plaintext.getBytes());
     }
 
