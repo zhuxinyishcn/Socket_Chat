@@ -10,6 +10,11 @@ public class Base64Ciper implements Cipher {
 
     @Override
     public String decipher (String ciphertext) {
+        try {
+            Base64.getDecoder().decode(ciphertext);
+        } catch (IllegalArgumentException e) {
+            return ciphertext;
+        }
         final byte[] decodedBytes = Base64.getDecoder().decode(ciphertext);
         return new String(decodedBytes);
     }

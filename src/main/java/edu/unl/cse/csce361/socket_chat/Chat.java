@@ -281,7 +281,7 @@ y
     private boolean handleKeyword (String keyword, boolean localMessage, BufferedReader input, PrintStream output) throws IOException {
         if (keyword.equals(bundle.getString("communicate.keyword.exit"))) {
             return false;
-
+        //change language start here
         } else if (keyword.equals(bundle.getString("communicate.keyword.setLocale"))) {
             if (localMessage) {
                 output.println("Please enter a choice: (1) 中文, (2) English: ");
@@ -299,8 +299,9 @@ y
             } else {
                 output.println(bundle.getString("connection.info.changing")); // replace with i18n property
             }
+            //change cipher start here
         } else if (keyword.equals(bundle.getString("communicate.keyword.setCipher"))) {
-            String userChoice = null;
+            String userChoice;
             String[] keys = new String[1];
             if (localMessage) {
                 output.println(bundle.getString("connection.info.cipher"));
@@ -314,27 +315,22 @@ y
                     keys[0] = input.readLine();
                 }
                 output.println(bundle.getString("connection.info.changeSuccess") + ": " + userChoice + " Cipher Algorithm");
-                if (keys[0] == null) {
-                    output.println(bundle.getString("connection.info.changeCipher") + userChoice + " Cipher Algorithm");
-                } else {
-                    output.println(bundle.getString("connection.info.changeCipher") + userChoice + " Cipher Algorithm " +
-                            "key: " + keys[0]);
-                }
                 this.cipherStrategy = CipherFactory.createCipher(userChoice, keys);
             } else {
                 output.println(bundle.getString("connection.info.changing"));
                 if (keys[0] == null) {
-                    output.println(bundle.getString("connection.info.changeCipher") + "bASE64 Cipher Algorithm");
-                } else{
-                    output.println(bundle.getString("connection.info.changeCipher") + "XOR Cipher Algorithm " +
+                    output.println(bundle.getString("connection.info.changeCipher") + " Base64 Cipher Algorithm");
+                } else {
+                    output.println(bundle.getString("connection.info.changeCipher") + " XOR Cipher Algorithm " +
                             "key: " + keys[0]);
                 }
             }
-
 
         } else {
             output.println(bundle.getString("communicate.error.unrecognizedKeyword") + ": " + keyword);
         }
         return true;
     }
+
+
 }
